@@ -1,6 +1,6 @@
 # Data-Tools
 Project
-# My Bookstore SQL Project
+# My library management SQL Project
 
 <a name="readme-top"></a>
 
