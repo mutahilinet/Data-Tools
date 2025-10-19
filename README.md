@@ -194,15 +194,18 @@ INSERT INTO borrow_records (book_id, student_id, borrow_date, due_date, return_d
 - The Tables should look like this in Supabase:
 authors
 <img width="1893" height="476" alt="image" src="https://github.com/user-attachments/assets/9a89f3ae-77d1-4ed2-a5c5-140db1e7e27b" />
+<img width="1899" height="917" alt="image" src="https://github.com/user-attachments/assets/3d13b577-a59b-463a-ab2b-90521e8a8d08" />
 
-books:
-<img width="1881" height="445" alt="image" src="https://github.com/user-attachments/assets/d741319f-a0ff-416c-b50f-34c315c9af24" />
 
-customers:
-<img width="1881" height="505" alt="image" src="https://github.com/user-attachments/assets/354752e6-fa32-4aa8-a28f-bf99f98039f2" />
+authors:
+<img width="1900" height="914" alt="image" src="https://github.com/user-attachments/assets/fca6c1d1-9a7c-466d-8b03-7bb92a633094" />
 
-orders:
-<img width="1902" height="517" alt="image" src="https://github.com/user-attachments/assets/fe99a68a-8950-4d87-82c1-25dcd3217a65" />
+
+publishers:
+<img width="1884" height="817" alt="image" src="https://github.com/user-attachments/assets/b29f685b-df1b-4161-9344-10738ae42f28" />
+
+students:
+<img width="1910" height="899" alt="image" src="https://github.com/user-attachments/assets/99bedf4e-62b9-4f83-b142-e2471c7080c2" />
 
 - The ERD screenshot from Supabase looks like this: 
 <img width="1064" height="577" alt="image" src="https://github.com/user-attachments/assets/4b8a39b1-ff20-4bd3-be6f-f662b35ae49f" />
