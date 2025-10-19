@@ -26,7 +26,7 @@ Project
 
 # 📖 My SQL Project <a name="about-project"></a>
 
-**My SQL Project** is a simple Database that uses SQL, Postgres via Supabase and R to create, query and secure a **Bookstore** database.
+**My SQL Project** is a simple Database that uses SQL, Postgres via Supabase and R to create, query and secure a **library management** database.
 
 ## 🛠 Built With <a name="built-with"></a>
 
