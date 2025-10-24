@@ -1,39 +1,67 @@
-# Data Dictionary for Event Ticketing Database 
+# Data Dictionary for library management system Database 
 
- This data dictionary describes the structure and purpose of the database tables used in the Event Ticketing project. It defines each table, its columns, data types, and relationships to help developers and analysts clearly understand the data model. 
-
----
- 
-## Table: customers
-Stores information about users who purchase tickets for events.  
- 
-<img width="909" height="350" alt="image" src="https://github.com/user-attachments/assets/7bedea0d-758d-493a-bbe7-e560b92506ab" />
+ This data dictionary describes the structure and purpose of the database tables used in the library management system. It defines each table, its columns, data types, and relationships to help developers and analysts clearly understand the data model. 
 
 ---
  
-## Table: events
-Contains details about upcoming or past events available for ticket purchase. 
- <img width="870" height="380" alt="image" src="https://github.com/user-attachments/assets/38f3cae2-7372-408e-9f7e-82a217fb4799" />
+## Table: authors
+Stores information about authors who wrote the books.  
  
----
- 
-## Table: tickets
-Records tickets purchased by customers for specific events. 
-<img width="863" height="429" alt="image" src="https://github.com/user-attachments/assets/89439568-939a-4f28-b90c-177033b7b62e" />
+<img width="1241" height="491" alt="image" src="https://github.com/user-attachments/assets/0c880ec4-f60c-472b-8281-22702450b021" />
 
 ---
  
-## Table: payments
-Stores payment details for tickets purchased by customers  
- <img width="914" height="341" alt="image" src="https://github.com/user-attachments/assets/227813d3-36dd-41e9-9281-821e77855423" />
+## Table: publishers
+Contains details about publishers of the books in the database.
+ <img width="1124" height="367" alt="image" src="https://github.com/user-attachments/assets/d9487b1f-8236-4b05-896e-66af0b5fb43b" />
+
+ 
+---
+ 
+## Table: students
+Records students who borrowed books. 
+<img width="1066" height="450" alt="image" src="https://github.com/user-attachments/assets/a705fd9c-098f-4432-944d-04e0f1a1501b" />
+
+
 
 ---
+ 
+## Table: books
+Stores information about all the books in the library.
+ <img width="1216" height="741" alt="image" src="https://github.com/user-attachments/assets/a6a86f78-1ab1-4d29-8918-957c221433aa" />
+
+
+---
+
+
+
+## Table :borrow records
+Stores record of books borrowed by students.
+<img width="1135" height="706" alt="image" src="https://github.com/user-attachments/assets/732b8a2f-98e0-47b4-bc2c-d3238389f07f" />
+
+
+---
+
  **Notes:**  
-- Primary keys uniquely identify rows in each table.
-Foreign keys (FK) connect relationships across tables (tickets → customers/events, payments → tickets).
-This schema supports queries like:
-- List all tickets purchased by a specific customer
-- Find all upcoming events after a specific date
-- Show total payments received for a given event"
-- Display customer details and their purchased event names
-and many more queries based on your criteria. 
+Primary keys uniquely identify each record, while foreign keys (FK) connect related tables.
+In this library system:
+
+books.author_id → links to authors
+
+books.publisher_id → links to publishers
+
+borrow_records.book_id → links to books
+
+borrow_records.student_id → links to students
+
+This schema supports queries such as:
+
+List all books written by a specific author
+
+Show books borrowed by a student
+
+Find overdue borrow records
+
+Display books published by a certain publisher
+
+Check available copies or borrowing history for each student
