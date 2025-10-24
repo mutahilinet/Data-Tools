@@ -231,11 +231,12 @@ WHERE in_stock = "TRUE"
 
 ## 👥 Authors <a name="authors"></a>
 
-👤 **Joy Phoebe**
+👤 **Mutahilinet**
 
-- GitHub: [@joyapisi](https://github.com/joyapisi)
-- Twitter: [@joyphoebe300](https://twitter.com/joyphoebe300)
-- LinkedIn: [@joyapisi](https://linkedin.com/in/joyapisi)
+- GitHub: [@mutahilinet](https://github.com/mutahilinet)
+- Twitter: [@joyphoebe300](https://twitter.com/linet mutahi)
+- LinkedIn: [@linet mutahi](www.linkedin.com/in/
+linet-mutahi-06894532)
 
 <p align="right">(<a href="#readme-top">back to top</a>)</p>
 
