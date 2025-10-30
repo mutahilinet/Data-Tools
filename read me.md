@@ -94,113 +94,152 @@ Apply user vs admin policies.
 
 ### 1️⃣ User Policies
 ```sql
--- Users can view only their own tickets
-CREATE POLICY "Users can view their own tickets"
-ON tickets
+-- CREATE POLICY "Students can view their own borrow records"
+ON borrow_records
 FOR SELECT
 USING (
   auth.uid() = (
-    SELECT auth_user_id FROM customers WHERE customers.customer_id = tickets.customer_id
+    SELECT p.id
+    FROM profiles p
+    JOIN students s ON s.student_id = borrow_records.student_id
+    WHERE p.id = auth.uid()
   )
 );
 
-```sql
--- Users can insert their own tickets
-CREATE POLICY "Users can insert their own tickets"
-ON tickets
+CREATE POLICY "Students can insert their own borrow records"
+ON borrow_records
 FOR INSERT
 WITH CHECK (
   auth.uid() = (
-    SELECT auth_user_id FROM customers WHERE customers.customer_id = tickets.customer_id
+    SELECT p.id
+    FROM profiles p
+    JOIN students s ON s.student_id = borrow_records.student_id
+    WHERE p.id = auth.uid()
   )
 );
+
+CREATE POLICY "Librarians have full access to borrow records"
+ON borrow_records
+FOR ALL
+USING (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'librarian'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1 FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'librarian'
+  )
+);
+
+
+
+
+```sql
+-- 
+
 ```
 
 ```sql
--- Users can view event details
-CREATE POLICY "Users can view events"
-ON events
-FOR SELECT
-USING (true);
+-- 
 ```
 ---
 
 ### 2️⃣ Admin Policies
 ```sql
--- Admins can manage all tickets
-CREATE POLICY "Admins have full access to tickets"
-ON tickets
-FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM customers WHERE auth_user_id = auth.uid() AND city = 'Admin'
-  )
-);
-
-```sql
--- Admins can manage all payments
-CREATE POLICY "Admins have full access to payments"
-ON payments
-FOR ALL
-USING (
-  EXISTS (
-    SELECT 1 FROM customers WHERE auth_user_id = auth.uid() AND city = 'Admin'
-  )
-);
-```
-
-```sql
--- Admins can view, edit, or delete all customers
-CREATE POLICY "Admins can manage all customers"
-ON customers
+-- -- Librarians can manage all borrow records
+CREATE POLICY "Librarians have full access to borrow records"
+ON borrow_records
 FOR ALL
 USING (
   EXISTS (
     SELECT 1
-    FROM users
-    WHERE users.user_uuid = auth.uid()
-    AND users.role = 'admin'
+    FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'librarian'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM profiles
+    WHERE id = auth.uid()
+    AND role = 'librarian'
   )
 );
+
 ```
+
 ```sql
-CREATE POLICY "Admins can manage all event schedules"
-ON event_schedules
+-- CREATE POLICY "Librarians can manage all books"
+ON books
 FOR ALL
 USING (
   EXISTS (
     SELECT 1
-    FROM users
-    WHERE users.user_uuid = auth.uid()
-    AND users.role = 'admin'
+    FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.role = 'librarian'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.role = 'librarian'
   )
 );
+
+
+CREATE POLICY "Librarians can manage all borrow records"
+ON borrow_records
+FOR ALL
+USING (
+  EXISTS (
+    SELECT 1
+    FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.role = 'librarian'
+  )
+)
+WITH CHECK (
+  EXISTS (
+    SELECT 1
+    FROM profiles
+    WHERE profiles.id = auth.uid()
+    AND profiles.role = 'librarian'
+  )
+);
+
 ```
 ---
  ### 3️⃣ Example CRUD Queries with their output.
  ```sql
--- Show all events available for booking
-SELECT * FROM events WHERE event_date >= CURRENT_DATE;
-
--- Show tickets purchased by a logged-in user
-SELECT t.ticket_id, e.event_name, e.event_date
-FROM tickets t
-JOIN events e ON t.event_id = e.event_id
-WHERE t.customer_id = (
-  SELECT customer_id FROM customers WHERE auth_user_id = auth.uid()
+-- -- Show borrow records for the currently logged-in student
+SELECT 
+  br.record_id,
+  b.title AS book_title,
+  br.borrow_date,
+  br.due_date,
+  br.return_date
+FROM borrow_records br
+JOIN books b ON br.book_id = b.book_id
+WHERE br.student_id = (
+  SELECT s.student_id
+  FROM students s
+  JOIN profiles p ON p.id = auth.uid()
+  WHERE p.role = 'student'
 );
 
--- Admin deletes a ticket (admin-only function)
-SELECT delete_ticket_admin(3);
+
+-
 
 ```
-1️⃣ Fetch all tickets with customer and event details
-
-<img width="1798" height="918" alt="image" src="https://github.com/user-attachments/assets/62fc6015-a39c-45d2-a7ca-8fbb866f1569" />
-
-2️⃣ Fetch all payments with event info
-
-<img width="1769" height="896" alt="image" src="https://github.com/user-attachments/assets/661341af-32fa-4212-8926-033d721c4b20" />
 
 ## User Roles and Output
 
