@@ -14,12 +14,13 @@ customers has an auth_user_id column (UUID) to map application records to authen
 ``` sql
 CREATE TABLE IF NOT EXISTS profiles (
   id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
-  full_name text,
-  role text NOT NULL DEFAULT 'user', -- 'user' | 'admin'
-  created_at timestamptz NOT NULL DEFAULT now()
+  full_name TEXT NOT NULL,
+  role TEXT NOT NULL CHECK (role IN ('librarian', 'student')) DEFAULT 'student',
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
 );
 
-<img width="1824" height="721" alt="image" src="https://github.com/user-attachments/assets/e66ff657-017c-452c-9843-51e9df156697" />
+
+<img width="1865" height="739" alt="image" src="https://github.com/user-attachments/assets/812afe2c-c714-409a-ba49-c962e9e87ca1" />
 
 
 ```
@@ -38,10 +39,10 @@ ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
 ***The random uuid(id) generated are as shown below with string of characters***
 
 ```sql
-SELECT * FROM authors;
+SELECT * FROM profiles;
 
 `
-<img width="1794" height="897" alt="image" src="https://github.com/user-attachments/assets/a9f9cc9f-a090-4d39-9317-ec9f5c739415" />
+<img width="1901" height="907" alt="image" src="https://github.com/user-attachments/assets/5a933baa-5f9d-45d3-9b27-5a344b28745e" />
 
 
 ------------------------------------------------------------------------
