@@ -243,79 +243,51 @@ WHERE br.student_id = (
 
 ## User Roles and Output
 
-**User purchases new tickets**
+
+**member loan history**
 ```sql
--- Insert new ticket (User only)
-INSERT INTO tickets (event_id, customer_id, quantity, purchase_date)
-VALUES (1, 1, 2, '2025-10-30');
+SELECT
+    m.first_name || ' ' || m.last_name AS member_name,
+    b.title AS book_title,
+    b.author,
+    l.loan_date,
+    l.due_date,
+    l.return_date
+FROM
+    Loans l
+JOIN
+    Members m ON l.member_id = m.member_id
+JOIN
+    Books b ON l.book_id = b.book_id
+WHERE
+    m.email = 'alice.j@library.org'; -- Use the member's unique email (like the auth UID);
 ```
-**View tickets purchased by a specific user**
-```sql
-SELECT 
-  c.full_name AS customer,
-  e.event_name,
-  e.location,
-  t.quantity,
-  t.purchase_date
-FROM tickets t
-JOIN customers c ON t.customer_id = c.customer_id
-JOIN events e ON t.event_id = e.event_id
-WHERE c.auth_user_id = 'eb08886f-6f46-4cae-a39e-7ad7619f7046';  -- User’s auth UID
-```
-  **Ouput upon Inserting & Viewing their tickets**
+  **Ouput upon Inserting & Viewing their borrowed books**
 
-<img width="1846" height="826" alt="image" src="https://github.com/user-attachments/assets/97a8eb75-31d1-412b-be32-d4f325aae37a" />
-
-**Viewing their tickets**
-<img width="1794" height="860" alt="image" src="https://github.com/user-attachments/assets/4ae59f41-3be0-42d2-95a9-4c72dc77d2a3" />
+<img width="1397" height="597" alt="image" src="https://github.com/user-attachments/assets/07d298a4-b0a8-49d7-8a05-912fd8a51a83" />
 
 
-
-  **User can also delete their purchased ticket**
-
-```sql
-DELETE FROM tickets
-WHERE customer_id = 1 AND event_id = 1;
-
-```
-**User cancels (deletes) their ticket with id=1**
-
-<img width="1900" height="838" alt="image" src="https://github.com/user-attachments/assets/c16dbed7-1f6b-4340-b135-f9592b64ae41" />
-
-
+ 
 
 ## Admin Roles and Output
 
-**Admin add a new event and view before updating**
-
+**This query selects the full name, role, and creation date for everyone who is not a regular student, giving the SuperAdmin a clean list of staff members**
 ```sql
--- Admin adds an event
-INSERT INTO events (event_name, event_date, location, price)
-VALUES ('Developers Meetup', '2025-12-10', 'Mombasa', 1200.00);
-
+--SELECT
+    p.full_name,
+    p.role,
+    p.created_at AS profile_creation_date
+FROM
+    profiles p
+WHERE
+    p.role != 'student' -- Filter out standard student users
+ORDER BY
+    p.role, 
+    p.created_at DESC;
 ```
-<img width="1897" height="916" alt="image" src="https://github.com/user-attachments/assets/e5e85e81-17b8-4579-8dc8-785e63ff83b7" />
+<img width="1412" height="629" alt="image" src="https://github.com/user-attachments/assets/4596df6b-7d4a-4022-bb65-8e783091c74f" />
 
 
-**Admin Update event details**
-```sql
--- Admin updates event info
-UPDATE events
-SET price = 1500.00, location = 'Nairobi'
-WHERE event_id = 6;
-
-```
-<img width="1808" height="880" alt="image" src="https://github.com/user-attachments/assets/664056d8-dd7c-4cb8-86bc-4a03fcd8575c" />
-
-**Admin Delete an event**
-```sql
--- Admin deletes an event
-DELETE FROM events WHERE event_id = 6;
-
-```
-<img width="1877" height="896" alt="image" src="https://github.com/user-attachments/assets/6ccf6fef-a08d-47c9-b5b3-ec3e8bc69d18" />
-
----
 
 ## 🛡 Security Notes <a name="security-notes"></a>
 
@@ -327,21 +299,26 @@ See full explanation of RLS, policies, and admin functions in 👉 [security_not
 ## 👥 Authors <a name="authors"></a>
 
 - **Evans Kibet**  
-  GitHub: [@EvansKibet](https://github.com/Evans-dotcom)  
-  LinkedIn: [Evans Kibet](https://www.linkedin.com/in/evans-langat-680b05342/)  
+  GitHub: [@mutahilinet](https://github.com/mutahilinet) 
+  
 
 ---
 
 ## 🔭 Future Features <a name="future-features"></a>
 
-- Integrate with front-end event booking portal
-- Add analytics for most attended events and top-paying customers
-- Implement audit logging for admin actions (create, update, delete events)
-- Enable ticket QR code generation for entry validation
--Add email/SMS notifications for successful payments
--Include refund and cancellation management
--Implement role-based access (Admin, Customer)
+- Front-End Integration: Develop a web app interface for managing the library database.
 
+Borrowing Analytics: Add reports for tracking most popular books and top-borrowing students.
+
+Audit Logging: Implement a separate table to record all staff actions (add, edit, delete) on key records.
+
+Digital Member IDs: Use student IDs or QR codes for quick, valid check-outs at the desk.
+
+Automated Notifications: Send email/SMS reminders for overdue books and due dates.
+
+Fine Management: Include system features for calculating and managing late fines, including the ability to process fine reversals/cancellations.
+
+Role-Based Access Control (RBAC): Fully implement security policies to restrict actions based on user roles (SuperAdmin, Librarian, Student).
 Add dashboard for revenue and sales insights
 ---
 
