@@ -29,11 +29,12 @@ CREATE TABLE IF NOT EXISTS profiles (
 Enable RLS on every table you want protected. RLS denies access by default until policies are created.
 ``` sql
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
-ALTER TABLE customers ENABLE ROW LEVEL SECURITY;
-ALTER TABLE events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE tickets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE payments ENABLE ROW LEVEL SECURITY;
-
+ALTER TABLE students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE books ENABLE ROW LEVEL SECURITY;
+ALTER TABLE borrow_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE authors ENABLE ROW LEVEL SECURITY;
+ALTER TABLE publishers ENABLE ROW LEVEL SECURITY;
+-- 
 ```
 
 ***The random uuid(id) generated are as shown below with string of characters***
@@ -53,61 +54,80 @@ Normal users have restricted access.
 - events (public read, admin manage)
 
 ``` sql
--- View only their own favorites
-CREATE POLICY "Public read events"
-ON events FOR SELECT USING (true);
+-- -- View only their own favorites
+CREATE POLICY "Public read books"
+ON books FOR SELECT USING (true);
 
-CREATE POLICY "Admins manage events"
-ON events FOR ALL
-USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'))
-WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'));
-```
+CREATE POLICY "Librarians manage books"
+ON books FOR ALL -- Applies to INSERT, UPDATE, DELETE
+USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'cataloger', 'superadmin')))
+WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'cataloger', 'superadmin')));
+
+CREATE POLICY "Librarians manage borrow_records"
+ON borrow_records FOR ALL
+USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'superadmin')))
+WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'superadmin')));
+
+
 - customers (users manage their own customer row; admins full access)
 ``` sql
-CREATE POLICY "Admins full access customers"
-ON customers FOR ALL
-USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'))
-WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'));
+CREATE POLICY "Librarians full access students"
+ON students FOR ALL
+USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'superadmin')))
+WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'superadmin')));
 
-CREATE POLICY "Users can select own customer"
-ON customers FOR SELECT
+CREATE POLICY "Students can select own student record"
+ON students FOR SELECT
 USING (auth_user_id = auth.uid());
 
-CREATE POLICY "Users can update own customer"
-ON customers FOR UPDATE
-USING (auth_user_id = auth.uid())
-WITH CHECK (auth_user_id = auth.uid());
-
-CREATE POLICY "Users can insert own customer"
-ON customers FOR INSERT
-WITH CHECK (auth_user_id = auth.uid());
-```
-- tickets (users can manage tickets they own; admins full access)
-
-``` sql
-  CREATE POLICY "Admins full access tickets"
-ON tickets FOR ALL
-USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'))
-WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'));
-
-CREATE POLICY "Users can select own tickets"
-ON tickets FOR SELECT
+CREATE POLICY "Students can update own loan records"
+ON borrow_records FOR UPDATE
 USING (
-  exists (
-    select 1 from customers c
-    where c.customer_id = tickets.customer_id
-      and c.auth_user_id = auth.uid()
-  )
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id
+      and s.auth_user_id = auth.uid()
+  )
+)
+WITH CHECK (
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id
+      and s.auth_user_id = auth.uid()
+  )
 );
 
-CREATE POLICY "Users can insert own tickets"
-ON tickets FOR INSERT
+CREATE POLICY "Students can insert own student record"
+ON students FOR INSERT
+WITH CHECK (auth_user_id = auth.uid());
+```
+--(users can manage book records they own; admins full access)
+
+``` sql
+  CREATE POLICY "Librarians full access borrow_records"
+ON borrow_records FOR ALL
+USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'superadmin')))
+WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role IN ('librarian', 'superadmin')));
+
+CREATE POLICY "Students can select own loan records"
+ON borrow_records FOR SELECT
+USING (
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id -- Link loan to student
+      and s.auth_user_id = auth.uid()             -- Check ownership via auth ID
+  )
+
+);
+
+CREATE POLICY "Students can insert own loan records"
+ON borrow_records FOR INSERT
 WITH CHECK (
-  exists (
-    select 1 from customers c
-    where c.customer_id = tickets.customer_id
-      and c.auth_user_id = auth.uid()
-  )
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id  -- Links the new loan to a student ID
+      and s.auth_user_id = auth.uid()               -- Verifies the student ID is owned by the current user
+  )
 );
 
 CREATE POLICY "Users can update own tickets"
@@ -118,23 +138,19 @@ USING (
     where c.customer_id = tickets.customer_id
       and c.auth_user_id = auth.uid()
   )
-)
-WITH CHECK (
-  exists (
-    select 1 from customers c
-    where c.customer_id = tickets.customer_id
-      and c.auth_user_id = auth.uid()
-  )
+
+
 );
 
-CREATE POLICY "Users can delete own tickets"
-ON tickets FOR DELETE
+CREATE POLICY "Students can delete own loan records"
+ON borrow_records FOR DELETE
 USING (
-  exists (
-    select 1 from customers c
-    where c.customer_id = tickets.customer_id
-      and c.auth_user_id = auth.uid()
-  )
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id  -- Links the loan to a student ID
+      and s.auth_user_id = auth.uid()               -- Verifies the student ID is owned by the current user
+  )
+);
 );
 ```
 - payments (users can manage payments for tickets they own; admins full access)
@@ -144,56 +160,59 @@ ON payments FOR ALL
 USING (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'))
 WITH CHECK (exists (select 1 from profiles p where p.id = auth.uid() and p.role = 'admin'));
 
-CREATE POLICY "Users can select payments for their tickets"
-ON payments FOR SELECT
+CREATE POLICY "Students can select own loan records"
+ON borrow_records FOR SELECT
 USING (
-  exists (
-    select 1 from tickets t
-    join customers c on c.customer_id = t.customer_id
-    where t.ticket_id = payments.ticket_id
-      and c.auth_user_id = auth.uid()
-  )
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id -- Link loan to student ID
+      and s.auth_user_id = auth.uid()             -- Verify ownership via auth ID
+  )
+
 );
 
-CREATE POLICY "Users can insert payments for their tickets"
-ON payments FOR INSERT
+CREATE POLICY "Students can insert own loan records"
+ON borrow_records FOR INSERT
 WITH CHECK (
-  exists (
-    select 1 from tickets t
-    join customers c on c.customer_id = t.customer_id
-    where t.ticket_id = payments.ticket_id
-      and c.auth_user_id = auth.uid()
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id  -- Links the loan to a student ID
+      and s.auth_user_id = auth.uid()               -- Verifies the student ID is owned by the current user
+  )
+
   )
 );
 
-CREATE POLICY "Users can update payments for their tickets"
-ON payments FOR UPDATE
+CREATE POLICY "Students can update own loan records"
+ON borrow_records FOR UPDATE
 USING (
-  exists (
-    select 1 from tickets t
-    join customers c on c.customer_id = t.customer_id
-    where t.ticket_id = payments.ticket_id
-      and c.auth_user_id = auth.uid()
-  )
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id  -- Links the loan to the student's ID
+      and s.auth_user_id = auth.uid()               -- Verifies the student ID is owned by the current user
+  )
+)
+
+);
 )
 WITH CHECK (
-  exists (
-    select 1 from tickets t
-    join customers c on c.customer_id = t.customer_id
-    where t.ticket_id = payments.ticket_id
-      and c.auth_user_id = auth.uid()
-  )
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id -- Link loan to student ID
+      and s.auth_user_id = auth.uid()              -- Verify ownership via auth ID
+  )
+)
 );
 
-CREATE POLICY "Users can delete payments for their tickets"
-ON payments FOR DELETE
+CREATE POLICY "Students can delete own loan records"
+ON borrow_records FOR DELETE
 USING (
-  exists (
-    select 1 from tickets t
-    join customers c on c.customer_id = t.customer_id
-    where t.ticket_id = payments.ticket_id
-      and c.auth_user_id = auth.uid()
-  )
+  exists (
+    select 1 from students s
+    where s.student_id = borrow_records.student_id  -- Links the loan record to the student ID
+      and s.auth_user_id = auth.uid()               -- Verifies the student ID is owned by the current user
+  )
+
 );
 
 ```
@@ -205,34 +224,52 @@ USING (
 Admins have **full access**.
 Use **SECURITY DEFINER** functions with internal role checks as defense-in-depth.
 
-- Delete event (admin only)
+- This function allows authorized library staff to delete a specific student record from the system.
 ``` sql
-CREATE OR REPLACE FUNCTION delete_event_by_admin(eid INT)
+CREATE OR REPLACE FUNCTION delete_student_by_staff(sid INT)
 RETURNS VOID
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER -- Executes with high privileges, bypassing RLS
 AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin') THEN
-    RAISE EXCEPTION 'Only admins may call delete_event_by_admin';
-  END IF;
-  DELETE FROM events WHERE event_id = eid;
+    -- CRITICAL ROLE CHECK: Ensure the caller has an authorized staff role
+  IF NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role IN ('librarian', 'superadmin')) THEN
+    RAISE EXCEPTION 'Only authorized library staff may delete student records.';
+  END IF;
+
+    -- The actual administrative action: Delete the specific student record
+  DELETE FROM students WHERE student_id = sid;
+
+    -- Optional: If student deletion is blocked due to foreign key constraints,
+    -- a more complex function would handle deleting or anonymizing associated
+    -- borrow_records first.
+    IF NOT FOUND THEN
+        RAISE NOTICE 'Student ID % was not found.', sid;
+    END IF;
 END;
 $$;
 ```
-- Delete ticket (admin only):
+- library staff to delete a specific loan record from the transaction history.:
   
 ``` sql
-CREATE OR REPLACE FUNCTION delete_ticket_by_admin(tid INT)
+CREATE OR REPLACE FUNCTION delete_loan_record_by_staff(rid INT)
 RETURNS VOID
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY DEFINER -- Executes with high privileges, bypassing RLS
 AS $$
 BEGIN
-  IF NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role = 'admin') THEN
-    RAISE EXCEPTION 'Only admins may call delete_ticket_by_admin';
-  END IF;
-  DELETE FROM tickets WHERE ticket_id = tid;
+    -- CRITICAL ROLE CHECK: Ensure the caller has an authorized staff role
+  IF NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role IN ('librarian', 'superadmin')) THEN
+    RAISE EXCEPTION 'Only authorized library staff may delete loan records.';
+  END IF;
+
+    -- The actual administrative action: Delete the specific loan record
+  DELETE FROM borrow_records WHERE record_id = rid;
+
+    -- Optional: Add a check to confirm deletion or raise an error if ID was not found
+    IF NOT FOUND THEN
+        RAISE NOTICE 'Loan record ID % was not found.', rid;
+    END IF;
 END;
 $$;
 
@@ -240,57 +277,69 @@ $$;
 
 ------------------------------------------------------------------------
 
-## ⚡️ Testing Roles & Policies
+Test 1: Update Catalog (UPDATE)
 
-### ✅ User Tests
-1.  **SELECT own tickets** (works)\
-2.  **INSERT a new ticket purchase** (works)\
-3.  **UPDATE or DELETE tickets/payments** (blocked)\
-   
-- **Create test accounts** in Supabase Auth:
- - Admin user (set profiles.role = 'admin')
- - Regular user A and user B
-- **Create/Update profiles** or use signup trigger to auto-create a profile for each auth.users row.. **Populate sample data** (events, customers with auth_user_id, tickets, payments). Ensure customers.auth_user_id points to users.
-- Test with **supabase** :
- -Sign in as regular user → request tickets and payments. Confirm user only sees their own.
- - Try to perform admin-only actions (update/delete events) as regular user → **should fail**.
-- Sign in as **admin** → confirm full access, call admin RPCs (delete_event_by_admin).
-- Use **SQL Editor** for debugging only (SQL Editor runs as service_role and bypasses RLS — do not use this for policy tests).
+Action: As a Librarian, successfully UPDATE a book's detail (e.g., change copies_available in the books table).
 
-### ✅ Admin Tests
+Expected Result: Action WORKS without an RLS error.
 
-1.  **UPDATE event details** (works)\
-2.  **DELETE event**(works)\
-3.  **SELECT all tickets** (works)
+Test 2: Delete Inventory (DELETE via RPC)
+
+Action: As a Librarian, successfully call the secure function (delete_book_safe or delete_student_by_staff).
+
+Expected Result: Function WORKS, and the record is permanently deleted.
+
+Test 3: View All Transactions (SELECT)
+
+Action: As a Librarian, run a SELECT query on the borrow_records table.
+
+Expected Result: Query WORKS, and all loan records (including every student's history) are returned.
+
+Test 4: Student-Only Action (Failure Test)
+
+Action: As a Librarian, try to perform an action restricted to the student role (e.g., try to register a second profile row with the Students can insert own student record policy).
+
+Expected Result: Action is BLOCKED or fails gracefully, proving the role restrictions work in both directions.
+-- Test 1: UPDATE book details 
+UPDATE books
+SET copies_available = 6
+WHERE title = 'Beloved';
 
 ------------------------------------------------------------------------
 
-<img width="1903" height="832" alt="image" src="https://github.com/user-attachments/assets/58d58dc6-db66-4607-8d37-d2769784097b" />
+<img width="1830" height="846" alt="image" src="https://github.com/user-attachments/assets/ca9bb68f-fd01-43ba-9130-b88a6889162b" />
 
 
 ## 🛠 Admin-only Function
 
-Example: Admin deletes an event safely.
 
 ``` sql
-CREATE OR REPLACE FUNCTION delete_event_safe(event_id INT)
+CREATE OR REPLACE FUNCTION delete_book_safe(book_id INT)
 RETURNS VOID
-LANGUAGE SQL
-SECURITY DEFINER
+LANGUAGE plpgsql
+SECURITY DEFINER -- Runs as the superuser, which is crucial for RLS bypass
 AS $$
-  DELETE FROM events WHERE event_id = $1;
+BEGIN
+    -- CRITICAL CHECK: Ensure the caller has an authorized staff role
+  IF NOT EXISTS (SELECT 1 FROM profiles p WHERE p.id = auth.uid() AND p.role IN ('librarian', 'superadmin')) THEN
+    RAISE EXCEPTION 'Only authorized staff may call delete_book_safe.';
+  END IF;
+
+    -- The actual administrative action
+  DELETE FROM books WHERE book_id = $1;
+END;
 $$;
 
 ```
 
 ------------------------------------------------------------------------
 
-<img width="1901" height="796" alt="image" src="https://github.com/user-attachments/assets/85a3c200-c0d4-408a-a43d-456e601bf6d4" />
+<img width="1875" height="602" alt="image" src="https://github.com/user-attachments/assets/ec1395ea-9eb0-43a3-89a4-19e7ed475c22" />
 
 
 ## 📎 Reference
 
--   Linked to [README.md](https://github.com/Evans-dotcom/Data-Tools/blob/Data_Fundamentals-Branch/ReadMe.md)
+-   Linked to https://github.com/mutahilinet/Data-Tools/edit/main/security_notes.md
 -   Supabase Policies: <https://supabase.com/docs/guides/database/postgres/row-level-security>
 
   
