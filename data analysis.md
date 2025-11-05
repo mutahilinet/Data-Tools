@@ -137,50 +137,140 @@ dbListTables(con)
 <summary>Click to expand schema.sql for Library Management Data Analysis</summary>
 
 ```sql
+CREATE TABLE authors (
+    author_id SERIAL PRIMARY KEY, -- Primary Key, auto-incrementing ID using SERIAL
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    nationality VARCHAR(50),
+    -- Constraint to ensure the combination of first and last name is unique
+    UNIQUE (first_name, last_name)
+);
+
+CREATE TABLE publishers (
+    publisher_id SERIAL PRIMARY KEY, -- Primary Key, auto-incrementing ID
+    publisher_name VARCHAR(255) NOT NULL UNIQUE, -- Unique name for the publisher
+    city VARCHAR(100)
+);
+
 CREATE TABLE students (
-  student_id SERIAL PRIMARY KEY,
-  full_name VARCHAR(100),
-  department VARCHAR(50),
-  email VARCHAR(100) UNIQUE
+    student_id SERIAL PRIMARY KEY, -- Primary Key
+    first_name VARCHAR(100) NOT NULL,
+    last_name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) UNIQUE NOT NULL, -- Email must be unique for each student
+    enrollment_date DATE NOT NULL
 );
 
 CREATE TABLE books (
-  book_id SERIAL PRIMARY KEY,
-  title VARCHAR(150),
-  author VARCHAR(100),
-  genre VARCHAR(50),
-  year_published INT
+    book_id SERIAL PRIMARY KEY, -- Primary Key
+    title VARCHAR(255) NOT NULL,
+    isbn VARCHAR(13) UNIQUE NOT NULL, -- International Standard Book Number, must be unique
+    publication_year SMALLINT, -- Changed YEAR to SMALLINT for broader compatibility
+    copies_available INT NOT NULL DEFAULT 1, -- Number of copies currently available for loan
+
+    -- Foreign Key references the authors table
+    author_id INT,
+    FOREIGN KEY (author_id) REFERENCES authors(author_id) ON DELETE RESTRICT,
+
+    -- Foreign Key references the publishers table
+    publisher_id INT,
+    FOREIGN KEY (publisher_id) REFERENCES publishers(publisher_id) ON DELETE RESTRICT
 );
 
 CREATE TABLE borrow_records (
-  record_id SERIAL PRIMARY KEY,
-  student_id INT REFERENCES students(student_id),
-  book_id INT REFERENCES books(book_id),
-  borrow_date DATE,
-  return_date DATE
+    record_id SERIAL PRIMARY KEY, -- Primary Key
+    
+    -- Foreign Key references the books table
+    book_id INT NOT NULL,
+    FOREIGN KEY (book_id) REFERENCES books(book_id) ON DELETE RESTRICT,
+    
+    -- Foreign Key references the students table
+    student_id INT NOT NULL,
+    FOREIGN KEY (student_id) REFERENCES students(student_id) ON DELETE RESTRICT,
+    
+    borrow_date DATE NOT NULL,
+    due_date DATE NOT NULL,
+    return_date DATE, -- NULL if the book has not yet been returned
+    
+    -- Constraint to ensure a book is not recorded as borrowed after it has been returned
+    CHECK (return_date IS NULL OR return_date >= borrow_date)
 );
 
--- Sample Data
-INSERT INTO students (full_name, department, email)
-VALUES
-('Alice Njeri', 'Computer Science', 'alice@library.org'),
-('Brian Otieno', 'Mathematics', 'brian@library.org'),
-('Clara Wambui', 'Economics', 'clara@library.org'),
-('Dennis Murithi', 'Data Science', 'dennis@library.org');
+CREATE TABLE IF NOT EXISTS profiles (
+  id uuid PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+  full_name text,
+  role text NOT NULL CHECK (role IN ('librarian', 'student')) DEFAULT 'student',
+  created_at timestamptz NOT NULL DEFAULT now()
+);
 
-INSERT INTO books (title, author, genre, year_published)
-VALUES
-('Data Analytics for All', 'Hadley Wickham', 'Data Science', 2021),
-('Database Systems', 'Elmasri & Navathe', 'Computer Science', 2016),
-('Linear Algebra Simplified', 'Gilbert Strang', 'Mathematics', 2019),
-('Econometrics 101', 'Jeff Wooldridge', 'Economics', 2017);
+-- Insert sample authors
 
-INSERT INTO borrow_records (student_id, book_id, borrow_date, return_date)
+INSERT INTO authors (first_name, last_name, nationality)
+
 VALUES
-(1, 1, '2025-01-02', '2025-01-12'),
-(2, 3, '2025-01-15', '2025-01-22'),
-(3, 4, '2025-02-10', NULL),
-(4, 2, '2025-02-14', '2025-02-24');
+
+('George', 'Orwell', 'British'),
+
+('Jane', 'Austen', 'British'),
+
+('Mark', 'Twain', 'American'),
+
+('Chinua', 'Achebe', 'Nigerian');
+ 
+-- Insert publishers
+
+INSERT INTO publishers (publisher_name, city)
+
+VALUES
+
+('Penguin Books', 'London'),
+
+('Oxford Press', 'Oxford'),
+
+('Random House', 'New York');
+ 
+-- Insert students
+
+INSERT INTO students (first_name, last_name, email, enrollment_date)
+
+VALUES
+
+('Alice', 'Njeri', 'alice@uni.edu', '2024-01-10'),
+
+('Brian', 'Otieno', 'brian@uni.edu', '2024-02-15'),
+
+('Clara', 'Wambui', 'clara@uni.edu', '2024-03-01'),
+
+('Dennis', 'Murithi', 'dennis@uni.edu', '2024-04-05');
+ 
+-- Insert books
+
+INSERT INTO books (title, isbn, publication_year, copies_available, author_id, publisher_id)
+
+VALUES
+
+('1984', '9780451524935', 1949, 4, 1, 1),
+
+('Pride and Prejudice', '9781503290563', 1813, 2, 2, 2),
+
+('Adventures of Huckleberry Finn', '9780142437179', 1884, 3, 3, 3),
+
+('Things Fall Apart', '9780385474542', 1958, 5, 4, 1);
+ 
+-- Insert borrow records
+
+INSERT INTO borrow_records (book_id, student_id, borrow_date, due_date, return_date)
+
+VALUES
+
+(1, 1, '2025-01-01', '2025-01-14', '2025-01-10'),
+
+(2, 2, '2025-02-10', '2025-02-24', NULL),
+
+(3, 3, '2025-02-12', '2025-02-26', '2025-02-20'),
+
+(4, 4, '2025-03-05', '2025-03-19', NULL);
+
+ 
 ```
 </details>
 
@@ -229,38 +319,18 @@ ggplot(active_students, aes(x=reorder(full_name, total_borrowed), y=total_borrow
   labs(title='👩‍🎓 Most Active Borrowers', x='Student', y='Books Borrowed') +
   theme_minimal()
 
-# 3️⃣ Borrowing Duration Analysis
-borrow_duration <- dbGetQuery(con, "
-  SELECT title, (return_date - borrow_date) AS duration
-  FROM borrow_records br
-  JOIN books b ON br.book_id = b.book_id
-  WHERE return_date IS NOT NULL;
-")
-
-ggplot(borrow_duration, aes(x=title, y=duration, fill=title)) +
-  geom_col(show.legend=FALSE) +
-  coord_flip() +
-  labs(title='⏱ Borrow Duration per Book', x='Book', y='Days Borrowed') +
-  theme_minimal()
 ```
 </details>
 
 ### Example Plots
 
-📘 **Most Borrowed Books**  
-<img width="1366" height="630" src="https://github.com/user-attachments/assets/a00864a0-99b8-4b2a-8e77-4cdfe6e73caa" />
+📘 **return status of borrowed books**  
+<img width="1864" height="892" alt="image" src="https://github.com/user-attachments/assets/0e716d5b-cd6c-44ab-9674-102ca6b1b902" />
 
-🎓 **Most Active Borrowers**  
-<img width="1366" height="630" src="https://github.com/user-attachments/assets/12d08288-53ce-4880-8c05-ff0382909a74" />
-
-⏱ **Borrow Duration by Book**  
-<img width="1366" height="630" src="https://github.com/user-attachments/assets/4b673d5b-c9c8-4814-8412-63ed767f8f62" />
+🎓 **author distribution by nationality**  
+<img width="1726" height="872" alt="image" src="https://github.com/user-attachments/assets/46f45d03-2215-408a-853d-22e3c75644c0" />
 
 ---
-
-## 📈 Power BI Dashboard Preview <a name="powerbi-dashboard"></a>
-
-Power BI dashboard visualization placeholder.
 
 ---
 
@@ -273,8 +343,8 @@ Library Data Dictionary
 
 ## 👥 Authors <a name="authors"></a>
 
-👤 **Dennis Murithi**  
-- GitHub: [@DENNIS-MURITHI](https://github.com/DENNIS-MURITHI)  
+👤 **mutahilinet**  
+- GitHub: [@mutahilinet](https://github.com/mutahilinet)  
 - LinkedIn: [LinkedIn](#)
 
 ---
