@@ -94,7 +94,7 @@ Supabase Dashboard
 ### Setup
 
 ```bash
-git clone https://github.com/DENNIS-MURITHI/library-management-data-analysis.git
+git clone https://github.com/mutahi-linet/library-management-data-analysis.git
 cd library-management-data-analysis
 ```
 
